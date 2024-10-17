@@ -33,6 +33,9 @@ def load_data(data_path):
     y = np.array(y)
     return X, y
 
+# Create models directory if it doesn't exist
+os.makedirs(MODEL_DIR, exist_ok=True)
+
 # Load and preprocess the data
 print("Loading data...")
 X, y = load_data(DATA_DIR)
@@ -61,10 +64,10 @@ model.compile(optimizer='adam',
 
 # Train the model
 print("Training model...")
-history = model.fit(X_train, y_train, epochs=100, 
+history = model.fit(X_train, y_train, epochs=EPOCHS, 
                     validation_data=(X_val, y_val))
 print("Model trained.")
 
 # Save the model
-model.save(MODEL_NAME)
-print(f"Model saved as {MODEL_NAME}.")
+model.save(os.path.join(MODEL_DIR, MODEL_NAME))
+print(f"Model saved to {MODEL_DIR}/{MODEL_NAME}")

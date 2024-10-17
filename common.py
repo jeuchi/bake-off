@@ -6,10 +6,15 @@ DURATION = 0.2  # Duration to record in seconds
 N_MELS = 64  # Number of Mel bands to generate
 HOP_LENGTH = 512  # Number of samples between successive frames
 
+# Training settings
+EPOCHS = 50
+
 # Define the classes (should match the classes used during training)
 CLASSES = ['neutral', 'racket_net', 'racket_rim']
 
 DATA_DIR = 'data'
+
+MODEL_DIR = 'models'
 MODEL_NAME = 'audio_classification_model.keras'
 
 def select_audio_input_device():

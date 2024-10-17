@@ -9,10 +9,11 @@ import queue
 import time
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
+import os
 from common import *
 
 # Load the saved model
-model = models.load_model(MODEL_NAME)
+model = models.load_model(os.path.join(MODEL_DIR, MODEL_NAME))
 print("Model loaded.")
 
 # Create a queue to communicate between the audio callback and main thread
