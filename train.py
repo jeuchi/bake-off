@@ -3,6 +3,7 @@ import numpy as np
 import librosa
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 from common import *
 
@@ -49,25 +50,32 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_st
 
 print (f"X_train.shape: {X_train.shape}")
 
-# Build the model
+# Build the model with convolutional layers
 model = models.Sequential([
     layers.Input(shape=(N_MELS, 9, 1)),
+    layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
+    layers.MaxPooling2D((2, 2)),
     layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dropout(0.3),
+    layers.Dense(256, activation='relu'),
+    layers.Dropout(0.5),
     layers.Dense(len(CLASSES), activation='softmax')
 ])
-
 model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
 # Train the model
 print("Training model...")
+callback = EarlyStopping(monitor='loss', patience=3)
 history = model.fit(X_train, y_train, epochs=EPOCHS, 
-                    validation_data=(X_val, y_val))
+                    validation_data=(X_val, y_val), callbacks=[callback])
 print("Model trained.")
 
 # Save the model
-model.save(os.path.join(MODEL_DIR, MODEL_NAME))
-print(f"Model saved to {MODEL_DIR}/{MODEL_NAME}")
+model_name = "audio_classification_model_temp.keras"
+model.save(os.path.join(MODEL_DIR, model_name))
+print(f"Model saved to {MODEL_DIR}/{model_name}")

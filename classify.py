@@ -12,6 +12,9 @@ import tkinter as tk
 import os
 from common import *
 
+# Current model to use for classification
+MODEL_NAME = 'audio_classification_model.keras'
+
 # Load the saved model
 model = models.load_model(os.path.join(MODEL_DIR, MODEL_NAME))
 print("Model loaded.")
@@ -46,37 +49,58 @@ stream = sd.InputStream(callback=audio_callback, channels=1,
 stream.start()
 print("Audio stream started.")
 
+last_class = 'neutral'
+
 def update_gui():
+    global last_class
+
     # Check if there is audio data in the queue
-    if not q.empty():
-        data = q.get()
-        # Process audio data
-        signal = data.flatten()
-        # Ensure signal length
-        if len(signal) < int(SAMPLE_RATE * DURATION):
-            pad_width = int(SAMPLE_RATE * DURATION) - len(signal)
-            signal = np.pad(signal, (0, pad_width), 'constant')
-        else:
-            signal = signal[:int(SAMPLE_RATE * DURATION)]
-        # Compute Mel spectrogram
-        mel_spect = librosa.feature.melspectrogram(y=signal, sr=SAMPLE_RATE, n_mels=N_MELS, hop_length=HOP_LENGTH)
-        mel_spect = librosa.power_to_db(mel_spect, ref=np.max)
-        # Normalize
-        mel_spect = (mel_spect - mel_spect.min()) / (mel_spect.max() - mel_spect.min() + 1e-6)
-        # Reshape for model input
-        input_data = mel_spect[np.newaxis, ..., np.newaxis]
-        # Predict
-        prediction = model.predict(input_data, verbose=None)
-        predicted_class = CLASSES[np.argmax(prediction)]
-        # Update text
-        label_var.set(f"Classification: {predicted_class}")
-        # Update spectrogram plot
-        ax.clear()
-        librosa.display.specshow(mel_spect, sr=SAMPLE_RATE, hop_length=HOP_LENGTH, x_axis='time', y_axis='mel', ax=ax)
-        ax.set(title='Live Spectrogram')
-        fig.canvas.draw()
-    # Schedule the next call to this function
-    root.after(100, update_gui) 
+    if last_class != 'neutral':
+        # A class was detected; pause updates
+        last_class = 'neutral'
+        # Clear the queue to prevent re-processing the same data
+        with q.mutex:
+            q.queue.clear()
+        # Schedule the next update after 1 second
+        root.after(1000, update_gui)
+    else:
+        if not q.empty():
+            data = q.get()
+            # Process audio data
+            signal = data.flatten()
+            # Ensure signal length
+            if len(signal) < int(SAMPLE_RATE * DURATION):
+                pad_width = int(SAMPLE_RATE * DURATION) - len(signal)
+                signal = np.pad(signal, (0, pad_width), 'constant')
+            else:
+                signal = signal[:int(SAMPLE_RATE * DURATION)]
+            # Compute Mel spectrogram
+            mel_spect = librosa.feature.melspectrogram(
+                y=signal, sr=SAMPLE_RATE, n_mels=N_MELS, hop_length=HOP_LENGTH
+            )
+            mel_spect = librosa.power_to_db(mel_spect, ref=np.max)
+            # Normalize
+            mel_spect = (mel_spect - mel_spect.min()) / (mel_spect.max() - mel_spect.min() + 1e-6)
+            # Reshape for model input
+            input_data = mel_spect[np.newaxis, ..., np.newaxis]
+            # Predict
+            prediction = model.predict(input_data, verbose=None)
+            predicted_class = CLASSES[np.argmax(prediction)]
+            # Update text
+            label_var.set(f"Classification: {predicted_class}")
+            # Update spectrogram plot
+            ax.clear()
+            librosa.display.specshow(
+                mel_spect, sr=SAMPLE_RATE, hop_length=HOP_LENGTH,
+                x_axis='time', y_axis='mel', ax=ax
+            )
+            ax.set(title='Live Spectrogram')
+            fig.canvas.draw()
+            # Update last_class
+            last_class = predicted_class
+
+        # Schedule the next call to this function regardless of queue status
+        root.after(100, update_gui)
 
 def on_closing():
     stream.stop()

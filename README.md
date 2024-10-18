@@ -1,6 +1,6 @@
 # UCLA ECE 209AS Interactive Systems: Bake Off
-This project classifies audio/vibration signals from a piezoelectric input into either
-"neutral", "racket net", or "racket rim".
+This project classifies audio/vibration signals from a piezoelectric input on a tennis racket into either
+"neutral", "net", or "rim".
 
 ## How to run
 * **collect.py** is used to record samples
